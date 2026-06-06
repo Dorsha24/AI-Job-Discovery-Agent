@@ -1,4 +1,4 @@
-# AI Job Discovery Agent
+# Career Intelligence Platform
 
 An AI-powered career intelligence platform that automatically discovers, analyzes, scores, and tracks relevant
 
