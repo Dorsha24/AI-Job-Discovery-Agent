@@ -1,0 +1,1415 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -656,
+        -64
+      ],
+      "id": "f101edf1-a64c-4492-99f8-5115f5661650",
+      "name": "Schedule Trigger",
+      "retryOnFail": false,
+      "executeOnce": false,
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chat-latest",
+          "mode": "list",
+          "cachedResultName": "CHAT-LATEST"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are an expert Israeli high-tech recruiter.\n\nCandidate Profile:\n\n- B.A Information Systems & Business Administration\n- Junior candidate\n- SQL\n- Excel\n- Power BI\n- Python\n- SAP Implementation\n- Business Analysis\n- Data Analysis\n- Financial Analysis\n- BI\n- Dashboards\n- Automation\n- Information Systems\n\nAnalyze this job:\n\nTitle:\n{{ $json.title }}\n\nCompany:\n{{ $json.company_name }}\n\nLocation:\n{{ $json.location.name }}\n\nDescription:\n{{ $json.content }}\n\nPriority Rules:\n\nHIGH:\nExcellent fit for Dor's profile.\nJunior position.\nInformation Systems, BI, Data, Business Analysis, Financial Analysis, Automation or ERP/SAP.\nApply immediately.\n\nMEDIUM:\nGood fit but missing some skills or experience.\n\nLOW:\nWeak fit or not aligned with career goals.\nReturn ONLY valid JSON:\n\n{\n  \"score\": 0-100,\n  \"priority\": \"HIGH/MEDIUM/LOW\",\n  \"apply\": \"Yes or No\",\n  \"category\": \"\",\n  \"reason\": \"\",\n  \"missing_skills\": \"\"\n}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        592,
+        -80
+      ],
+      "id": "a3c8fa6d-29c1-4815-8aa0-b6ff0f7aa10a",
+      "name": "Message a model",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "openAiApi": {
+          "id": "6mrrVdUCaEitFY4K",
+          "name": "OpenAI account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://boards-api.greenhouse.io/v1/boards/duolingo/jobs?content=true",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -320,
+        -64
+      ],
+      "id": "ba05388d-32e1-4023-9f57-3587510e4b72",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -64
+      ],
+      "id": "206b0a8a-9565-4d02-a10c-3ba549f5d36d",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiItems = $input.all();\nconst jobItems = $(\"Merge\").all();\n\nconst results = [];\n\nfor (let i = 0; i < aiItems.length; i++) {\n  const aiItem = aiItems[i].json;\n  const job = jobItems[i]?.json;\n\n  if (!job) continue;\n\n  // Skip failed GPT items\n  if (aiItem.error) continue;\n\n  const text = aiItem.output?.[0]?.content?.[0]?.text;\n\n  if (!text) continue;\n\n  let ai;\n\n  try {\n    ai = JSON.parse(text);\n  } catch (e) {\n    continue;\n  }\n\n  results.push({\n    json: {\n      Date: new Date().toISOString().split(\"T\")[0],\n      \"Job Title\": job.title,\n      Company: job.company_name,\n      Location: job.location?.name || \"\",\n      \"Job URL\": job.absolute_url,\n      Source: \"Greenhouse\",\n      \"Match Score\": ai.score,\n      Category: ai.category,\n      Apply: ai.apply,\n      Reason: ai.reason,\n      Priority: ai.priority,\n      \"Missing Skills\": ai.missing_skills\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -80
+      ],
+      "id": "13901f99-30f1-4336-83cf-475b6b5e8718",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1f88489-a596-4f49-b5d4-9de45ad7f370",
+              "leftValue": "={{ DateTime.fromISO($json.first_published) }}",
+              "rightValue": "2026-05-27T18:24:27",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        -64
+      ],
+      "id": "79106fe6-b344-4272-91d1-99a984dae25d",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "url": "https://boards-api.greenhouse.io/v1/boards/riskified/jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -320,
+        -224
+      ],
+      "id": "8969a00e-4803-412e-8b4a-dab3ea0f0f57",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "url": "https://boards-api.greenhouse.io/v1/boards/riskified/jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -368,
+        256
+      ],
+      "id": "511e7c8b-ee99-4145-99c8-09c4ad7bb561",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "url": "https://boards-api.greenhouse.io/v1/boards/melio/jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -368,
+        416
+      ],
+      "id": "05ab190e-2604-49b3-80a6-37f1ab9303b0",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "url": "https://boards-api.greenhouse.io/v1/boards/bringg/jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -336,
+        96
+      ],
+      "id": "7e5a1e8b-ebfb-49a1-a60d-25f4421e2a42",
+      "name": "HTTP Request4"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        -224
+      ],
+      "id": "5cb94060-b90a-4c10-a7c6-7d39dc00ca33",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1f88489-a596-4f49-b5d4-9de45ad7f370",
+              "leftValue": "={{ DateTime.fromISO($json.first_published) }}",
+              "rightValue": "2026-05-27T18:24:27",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        32,
+        -224
+      ],
+      "id": "652133cd-9891-4616-904b-cd18392011d9",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        96
+      ],
+      "id": "e2e72f06-f184-4a4e-ac2c-14c645e61533",
+      "name": "Split Out2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1f88489-a596-4f49-b5d4-9de45ad7f370",
+              "leftValue": "={{ DateTime.fromISO($json.first_published) }}",
+              "rightValue": "2026-05-27T18:24:27",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        16,
+        96
+      ],
+      "id": "5f5e097e-d7cd-4422-8c16-ca68ba10d0de",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        256
+      ],
+      "id": "cf3f1ed3-9f6a-4dff-b665-7f391de73213",
+      "name": "Split Out3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1f88489-a596-4f49-b5d4-9de45ad7f370",
+              "leftValue": "={{ DateTime.fromISO($json.first_published) }}",
+              "rightValue": "2026-05-27T18:24:27",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -48,
+        256
+      ],
+      "id": "5abdc86b-95b0-4e2c-9357-6ea7f339ca1b",
+      "name": "If4"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        416
+      ],
+      "id": "00b0f3a5-1173-4f21-940e-36dfd9dafe2a",
+      "name": "Split Out4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1f88489-a596-4f49-b5d4-9de45ad7f370",
+              "leftValue": "={{ DateTime.fromISO($json.first_published) }}",
+              "rightValue": "2026-05-27T18:24:27",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -16,
+        416
+      ],
+      "id": "3ecd58a2-1f7f-4453-b5dc-314c911483d8",
+      "name": "If5"
+    },
+    {
+      "parameters": {
+        "numberInputs": 8
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        400,
+        -176
+      ],
+      "id": "a67b02c9-62a1-4103-bdc4-58f59c1f054a",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1cd21363-92fb-498f-8cf7-0edc0cb1c662",
+              "leftValue": "={{ $json[\"Match Score\"] }}",
+              "rightValue": "=70",
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "60bdd9be-d79b-4572-9751-c9fcb7119022",
+              "leftValue": "={{ $json[\"Apply\"] }}",
+              "rightValue": "Yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1072,
+        -80
+      ],
+      "id": "51fa0fc8-d305-4385-92fd-1561821b2133",
+      "name": "IF"
+    },
+    {
+      "parameters": {
+        "url": "https://boards-api.greenhouse.io/v1/boards/forter/jobs?content=true",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -384,
+        896
+      ],
+      "id": "159a38b5-931e-44e9-b96e-9d36432e39be",
+      "name": "HTTP Request5"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        896
+      ],
+      "id": "3e1d58b5-a751-4529-84ce-dc5eb0f581aa",
+      "name": "Split Out5"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1f88489-a596-4f49-b5d4-9de45ad7f370",
+              "leftValue": "={{ DateTime.fromISO($json.first_published) }}",
+              "rightValue": "2026-05-27T18:24:27",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -32,
+        896
+      ],
+      "id": "a15b35ea-aa28-46ff-95be-9fe4e9055933",
+      "name": "If6"
+    },
+    {
+      "parameters": {
+        "url": "https://boards-api.greenhouse.io/v1/boards/appsflyer/jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -384,
+        752
+      ],
+      "id": "d9c275ee-6135-4240-8308-b924733dd527",
+      "name": "HTTP Request7"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -176,
+        752
+      ],
+      "id": "04537d43-e4c9-49d7-b08c-cfd4148af647",
+      "name": "Split Out7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1f88489-a596-4f49-b5d4-9de45ad7f370",
+              "leftValue": "={{ DateTime.fromISO($json.first_published) }}",
+              "rightValue": "2026-05-27T18:24:27",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -16,
+        752
+      ],
+      "id": "195b9e18-4361-4ab3-ad71-8e4b5667c5f2",
+      "name": "If8"
+    },
+    {
+      "parameters": {
+        "url": "https://boards-api.greenhouse.io/v1/boards/similarweb/jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -384,
+        592
+      ],
+      "id": "d286dcf3-721a-473c-b2de-48980ab1b4a4",
+      "name": "HTTP Request8"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "jobs",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        592
+      ],
+      "id": "7b87b234-d3e3-4c0c-9ae3-73305ba1cdcd",
+      "name": "Split Out8"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1f88489-a596-4f49-b5d4-9de45ad7f370",
+              "leftValue": "={{ DateTime.fromISO($json.first_published) }}",
+              "rightValue": "2026-05-27T18:24:27",
+              "operator": {
+                "type": "dateTime",
+                "operation": "after"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -32,
+        592
+      ],
+      "id": "340a9bae-b47c-4119-9abf-28241fa41f3c",
+      "name": "If9"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst seenUrls = new Set();\nconst cleaned = [];\n\nfor (const item of items) {\n  const url = item.json[\"Job URL\"];\n\n  if (!url) continue;\n  if (seenUrls.has(url)) continue;\n\n  seenUrls.add(url);\n  cleaned.push(item);\n}\n\nreturn cleaned;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        -96
+      ],
+      "id": "efc31199-4c8f-4253-a83f-cce706cafe0c",
+      "name": "Clean Results"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1D34-iv4pDnY6Eh6otPT20lCfhT_ET4xj_KYE2ZCuKN8",
+          "mode": "list",
+          "cachedResultName": "Job Search Agent",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D34-iv4pDnY6Eh6otPT20lCfhT_ET4xj_KYE2ZCuKN8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1D34-iv4pDnY6Eh6otPT20lCfhT_ET4xj_KYE2ZCuKN8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Job Title": "={{ $json[\"Job Title\"] }}",
+            "Date": "={{ $json[\"Date\"] }}",
+            "Company": "={{ $json[\"Company\"] }}",
+            "Location": "={{ $json[\"Location\"] }}\n",
+            "Job URL": "={{ $json[\"Job URL\"] }}",
+            "Source": "={{ $json[\"Source\"] }}",
+            "Match Score": "={{ $json[\"Match Score\"] }}",
+            "Category": "={{ $json[\"Category\"] }}\n",
+            "Apply": "={{ $json[\"Apply\"] }}",
+            "Reason": "={{ $json[\"Reason\"] }}",
+            "Priority": "={{ $json[\"Priority\"] }}\n",
+            "Missing Skills": "={{ $json[\"Missing Skills\"] }}",
+            "Company Summary": "={{ $json[\"Company Summary\"] }}",
+            "Industry": "={{ $json[\"Industry\"] }}",
+            "Company Size": "={{ $json[\"Company Size\"] }}",
+            "Funding": "={{ $json[\"Funding\"] }}",
+            "HQ": "={{ $json[\"HQ\"] }}",
+            "Company Fit": "={{ $json[\"Company Fit\"] }}"
+          },
+          "matchingColumns": [
+            "Job URL"
+          ],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Location",
+              "displayName": "Location",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Job URL",
+              "displayName": "Job URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Match Score",
+              "displayName": "Match Score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Apply",
+              "displayName": "Apply",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Missing Skills",
+              "displayName": "Missing Skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company Summary",
+              "displayName": "Company Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company Size",
+              "displayName": "Company Size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Funding",
+              "displayName": "Funding",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "HQ",
+              "displayName": "HQ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company Fit",
+              "displayName": "Company Fit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Applied Date",
+              "displayName": "Applied Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Interview Date",
+              "displayName": "Interview Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1552,
+        -96
+      ],
+      "id": "b67390c4-9739-4fd0-9f11-c67ec8e0ee56",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ipbVVjBlGQspjsLW",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst topJobs = items\n  .sort((a, b) => (b.json[\"Match Score\"] || 0) - (a.json[\"Match Score\"] || 0))\n  .slice(0, 5);\n\nlet message = `🚀 Top 5 Job Matches Today\\n\\n`;\n\nfor (const item of topJobs) {\n  const job = item.json;\n\n  message += `*${job[\"Job Title\"]}*\\n`;\n  message += `Company: ${job[\"Company\"]}\\n`;\n  message += `Score: ${job[\"Match Score\"]}\\n`;\n  message += `Priority: ${job[\"Priority\"]}\\n`;\n  message += `Link: ${job[\"Job URL\"]}\\n\\n`;\n}\n\nreturn [{ json: { message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        -96
+      ],
+      "id": "45f1ea73-b28d-4980-a56f-0d852c1d8c05",
+      "name": "Code - Build Telegram Message"
+    },
+    {
+      "parameters": {
+        "chatId": "=749676419",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1936,
+        -96
+      ],
+      "id": "fda73139-e75a-40de-b622-7a6391901f0a",
+      "name": "Send a text message",
+      "webhookId": "96a40896-0ae0-47fe-a828-952686d8ff4a",
+      "credentials": {
+        "telegramApi": {
+          "id": "EEFy4dIcW87MEY1V",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4",
+          "mode": "list",
+          "cachedResultName": "GPT-4"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are a technology company research analyst.\n\nAnalyze the company below and return ONLY valid JSON.\n\nCompany:\n{{ $json[\"Company\"] }}\n\nJob Title:\n{{ $json[\"Job Title\"] }}\n\nLocation:\n{{ $json[\"Location\"] }}\n\nReturn this JSON structure only:\n{\n  \"company_summary\": \"\",\n  \"industry\": \"\",\n  \"company_size\": \"\",\n  \"funding\": \"\",\n  \"hq\": \"\",\n  \"company_fit\": \"\"\n}\n\nRules:\n- Keep each field short.\n- If you are not sure, write \"Unknown\".\n- Do not invent exact numbers.\n- company_fit should explain in one sentence why this company may or may not be relevant for a junior data / business / BI analyst career."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1168,
+        192
+      ],
+      "id": "5e5d5e73-b763-4968-9cb9-88059720d5b7",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "6mrrVdUCaEitFY4K",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiItems = $input.all();\nconst jobItems = $(\"Clean Results\").all();\n\nconst results = [];\n\nfor (let i = 0; i < jobItems.length; i++) {\n  const job = jobItems[i].json;\n  const aiItem = aiItems[i]?.json;\n\n  let company = {};\n\n  if (aiItem && !aiItem.error) {\n    const text = aiItem.output?.[0]?.content?.[0]?.text;\n\n    if (text) {\n      try {\n        company = JSON.parse(text);\n      } catch (e) {\n        company = {};\n      }\n    }\n  }\n\n  results.push({\n    json: {\n      ...job,\n      \"Company Summary\": company.company_summary || \"Unknown\",\n      \"Industry\": company.industry || \"Unknown\",\n      \"Company Size\": company.company_size || \"Unknown\",\n      \"Funding\": company.funding || \"Unknown\",\n      \"HQ\": company.hq || \"Unknown\",\n      \"Company Fit\": company.company_fit || \"Unknown\"\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        192
+      ],
+      "id": "fe3198f4-25f5-4d52-8af6-95dde51a7705",
+      "name": "Merge Company Intelligence"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request8",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request7",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out3": {
+      "main": [
+        [
+          {
+            "node": "If4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Split Out3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out4": {
+      "main": [
+        [
+          {
+            "node": "If5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Split Out4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "If4": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "If5": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "Clean Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "HTTP Request5": {
+      "main": [
+        [
+          {
+            "node": "Split Out5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out5": {
+      "main": [
+        [
+          {
+            "node": "If6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request7": {
+      "main": [
+        [
+          {
+            "node": "Split Out7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out7": {
+      "main": [
+        [
+          {
+            "node": "If8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request8": {
+      "main": [
+        [
+          {
+            "node": "Split Out8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out8": {
+      "main": [
+        [
+          {
+            "node": "If9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If9": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "If8": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 6
+          }
+        ]
+      ]
+    },
+    "If6": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 7
+          }
+        ]
+      ]
+    },
+    "Clean Results": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code - Build Telegram Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code - Build Telegram Message": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Merge Company Intelligence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Company Intelligence": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "214a405d-66da-48e1-9215-91dcbe7d28b9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "093c69f6b497c67b17f3f77a40bb94139904f9502bdb65256e5d6af51189223f"
+  },
+  "id": "gmnSUPGS1nkeyn4B",
+  "tags": []
+}
